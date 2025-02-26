@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Estilos personalizados para melhor responsividade */
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Ajustes para dispositivos móveis */
+@media (max-width: 640px) {
+  .emoji-picker-react {
+    width: 100% !important;
+    height: 300px !important;
+  }
+}
