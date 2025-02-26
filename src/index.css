@@ -2,36 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  height: -webkit-fill-available;
+/* Configurações Globais */
+:root {
+  --app-height: 100%;
 }
 
+@supports (-webkit-touch-callout: none) {
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+}
+
+html,
 body {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
+  height: 100%;
+  height: var(--app-height);
+  overflow: hidden;
 }
 
-/* Previne o scroll indesejado quando o teclado virtual está aberto */
+/* Layout do Chat */
+.chat-container {
+  height: 100%;
+  height: var(--app-height);
+  display: flex;
+  flex-direction: column;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevenção de Scroll Indesejado */
 @media (max-width: 640px) {
-  .h-[100dvh] {
-    height: 100dvh;
-  }
-
-  .overflow-y-auto {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Ajusta o tamanho do input quando o teclado está aberto */
-  .input-container {
-    position: sticky;
+  .fixed-bottom {
+    position: fixed;
     bottom: 0;
+    left: 0;
+    right: 0;
     background-color: inherit;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
-/* Estilização do avatar padrão */
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Estilização do Avatar */
 .default-avatar {
   background-color: #e2e8f0;
   color: #64748b;
@@ -42,22 +77,45 @@ body {
   text-transform: uppercase;
 }
 
-/* Estilos personalizados para melhor responsividade */
-@layer utilities {
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+/* Estilização dos Cards */
+.card {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm transition-all duration-200;
+}
+
+.card:hover {
+  @apply shadow-md transform translate-y-[-2px];
+}
+
+/* Responsividade */
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
   }
   
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .stats-grid {
+    @apply grid-cols-2;
   }
 }
 
-/* Ajustes para dispositivos móveis */
-@media (max-width: 640px) {
-  .emoji-picker-react {
-    width: 100% !important;
-    height: 300px !important;
-  }
+/* Tema Escuro */
+.dark {
+  color-scheme: dark;
+}
+
+/* Scrollbar Personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
 }
