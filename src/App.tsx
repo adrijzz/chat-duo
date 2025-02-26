@@ -4,45 +4,52 @@ import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { ProfileSettings } from './components/ProfileSettings';
 import { PrivateRoom } from './components/PrivateRoom';
 import { MediaUpload } from './components/MediaUpload';
+import { MainMenu } from './components/MainMenu';
+import { HomePage } from './components/HomePage';
 
-// Definição dos tipos
-type Message = {
-  id: number;
+interface Message {
+  id: string;
   text: string;
   sender: string;
-  timestamp: Date;
+  timestamp: number;
   type: 'text' | 'image' | 'file';
   fileUrl?: string;
   fileName?: string;
-};
+  read: boolean;
+}
 
-type UserProfile = {
+interface Room {
+  id: string;
+  name: string;
+  participants: UserProfile[];
+  messages: Message[];
+  isPrivate: boolean;
+  password?: string;
+  connectedDevices: {
+    userId: string;
+    deviceId: string;
+    deviceName: string;
+    lastActive: number;
+  }[];
+}
+
+interface UserProfile {
   id: string;
   name: string;
   avatar: string;
   bio: string;
   isTyping: boolean;
   isOnline: boolean;
-};
-
-type Room = {
-  id: string;
-  name: string;
-  participants: string[];
-  messages: Message[];
-  isPrivate: boolean;
-};
+}
 
 function App() {
-  // Estados para controle de UI
-  const [currentPage, setCurrentPage] = useState<'home' | 'chat' | 'profile' | 'rooms'>('home');
-  const [darkMode, setDarkMode] = useState<boolean>(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showMediaUpload, setShowMediaUpload] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentPage, setCurrentPage] = useState<'home' | 'chat' | 'rooms'>('home');
   const [showProfileSettings, setShowProfileSettings] = useState(false);
-  
-  // Estados para dados
-  const [messageText, setMessageText] = useState<string>('');
+  const [showPrivateRoom, setShowPrivateRoom] = useState(false);
+  const [showMediaUpload, setShowMediaUpload] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [messageText, setMessageText] = useState('');
   const [currentUser, setCurrentUser] = useState<UserProfile>({
     id: 'user1',
     name: 'Usuário',
@@ -51,184 +58,191 @@ function App() {
     isTyping: false,
     isOnline: true
   });
-  
-  // Estados para salas
+
   const [rooms, setRooms] = useState<Room[]>([]);
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
-  
+  const [favoriteRooms, setFavoriteRooms] = useState<Room[]>([]);
+  const [recentRooms, setRecentRooms] = useState<Room[]>([]);
+  const [deviceId] = useState(() => `device_${Math.random().toString(36).slice(2)}`);
+  const [deviceName] = useState(() => {
+    const userAgent = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(userAgent)) return 'iOS';
+    if (/Android/.test(userAgent)) return 'Android';
+    return 'Desktop';
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Efeito para scroll automático
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [currentRoom?.messages]);
-
-  // Efeito para tema escuro
-  useEffect(() => {
-    if (darkMode) {
+    if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [darkMode]);
+  }, [isDarkMode]);
 
-  // Handlers para salas privadas
-  const handleCreateRoom = (roomName: string, password: string) => {
-    const newRoom: Room = {
-      id: Date.now().toString(),
-      name: roomName,
-      participants: [currentUser.id],
-      messages: [],
-      isPrivate: true
-    };
-    setRooms([...rooms, newRoom]);
-    setCurrentRoom(newRoom);
-    setCurrentPage('chat');
-  };
-
-  const handleJoinRoom = (roomId: string, password: string) => {
-    const room = rooms.find(r => r.id === roomId);
-    if (room) {
-      room.participants.push(currentUser.id);
-      setCurrentRoom(room);
-      setCurrentPage('chat');
-    }
-  };
-
-  // Handler para envio de arquivos
-  const handleFileSelect = async (file: File) => {
-    if (!currentRoom) return;
-    
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const newMessage: Message = {
-        id: Date.now(),
-        text: '',
-        sender: currentUser.id,
-        timestamp: new Date(),
-        type: file.type.startsWith('image/') ? 'image' : 'file',
-        fileUrl: reader.result as string,
-        fileName: file.name
-      };
-      
-      setCurrentRoom({
-        ...currentRoom,
-        messages: [...currentRoom.messages, newMessage]
+  useEffect(() => {
+    if (currentRoom) {
+      setRecentRooms(prev => {
+        const filtered = prev.filter(r => r.id !== currentRoom.id);
+        return [currentRoom, ...filtered].slice(0, 5);
       });
-    };
-    reader.readAsDataURL(file);
-  };
+    }
+  }, [currentRoom]);
 
-  // Handler para atualização de perfil
-  const handleProfileUpdate = (updates: Partial<{ name: string; avatar: string; bio: string }>) => {
-    setCurrentUser({ ...currentUser, ...updates });
-  };
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [currentRoom?.messages]);
 
-  // Handler para envio de mensagem
   const handleSendMessage = () => {
     if (!messageText.trim() || !currentRoom) return;
 
     const newMessage: Message = {
-      id: Date.now(),
+      id: Math.random().toString(36).slice(2),
       text: messageText,
       sender: currentUser.id,
-      timestamp: new Date(),
-      type: 'text'
+      timestamp: Date.now(),
+      type: 'text',
+      read: false
     };
 
-    setCurrentRoom({
-      ...currentRoom,
-      messages: [...currentRoom.messages, newMessage]
-    });
+    setCurrentRoom(prev => ({
+      ...prev!,
+      messages: [...prev!.messages, newMessage]
+    }));
+
     setMessageText('');
-    setShowEmojiPicker(false);
   };
 
-  // Handler para emoji
-  const onEmojiClick = (emojiData: EmojiClickData) => {
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
     setMessageText(prev => prev + emojiData.emoji);
   };
 
+  const handleFileSelect = (file: File) => {
+    if (!currentRoom) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const newMessage: Message = {
+        id: Math.random().toString(36).slice(2),
+        text: '',
+        sender: currentUser.id,
+        timestamp: Date.now(),
+        type: file.type.startsWith('image/') ? 'image' : 'file',
+        fileUrl: reader.result as string,
+        fileName: file.name,
+        read: false
+      };
+
+      setCurrentRoom(prev => ({
+        ...prev!,
+        messages: [...prev!.messages, newMessage]
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const toggleFavorite = (roomId: string) => {
+    const room = rooms.find(r => r.id === roomId);
+    if (room) {
+      if (favoriteRooms.some(r => r.id === roomId)) {
+        setFavoriteRooms(favoriteRooms.filter(r => r.id !== roomId));
+      } else {
+        setFavoriteRooms([...favoriteRooms, room]);
+      }
+    }
+  };
+
   return (
-    <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-md p-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <MessageCircle className="w-8 h-8 text-blue-500" />
-            <h1 className="text-xl font-bold">Chat Duo</h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-            >
-              {darkMode ? <Sun /> : <Moon />}
-            </button>
-            
-            <button
-              onClick={() => setShowProfileSettings(true)}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-            >
-              <Settings />
-            </button>
-            
-            <button
-              onClick={() => setCurrentPage('home')}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-            >
-              <LogOut />
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="h-screen bg-gray-100 dark:bg-gray-900">
+      <MainMenu
+        onNavigate={(page) => {
+          if (page === 'home') {
+            setCurrentPage('home');
+          } else if (page === 'rooms') {
+            setCurrentPage('rooms');
+          } else if (page === 'profile') {
+            setShowProfileSettings(true);
+          } else if (page === 'settings') {
+            // Implementar configurações
+          } else if (page === 'notifications') {
+            // Implementar notificações
+          } else if (page === 'logout') {
+            // Implementar logout
+          } else if (page.startsWith('room/')) {
+            const roomId = page.split('/')[1];
+            const room = rooms.find(r => r.id === roomId);
+            if (room) {
+              setCurrentRoom(room);
+              setCurrentPage('chat');
+            }
+          }
+        }}
+        onToggleTheme={() => setIsDarkMode(!isDarkMode)}
+        isDarkMode={isDarkMode}
+        currentUser={currentUser}
+        recentRooms={recentRooms.map(room => ({
+          id: room.id,
+          name: room.name,
+          lastMessage: room.messages[room.messages.length - 1]?.text,
+          unreadCount: room.messages.filter(m => !m.read && m.sender !== currentUser.id).length
+        }))}
+        favoriteRooms={favoriteRooms.map(room => ({
+          id: room.id,
+          name: room.name
+        }))}
+      />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
+      <div className="md:pl-64">
         {currentPage === 'home' && (
-          <div className="max-w-md mx-auto mt-10 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-            <div className="space-y-4">
-              <button
-                onClick={() => setCurrentPage('rooms')}
-                className="w-full py-3 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2"
-              >
-                <Users />
-                Salas Privadas
-              </button>
-            </div>
-          </div>
-        )}
-
-        {currentPage === 'rooms' && (
-          <div className="max-w-md mx-auto mt-10">
-            <PrivateRoom
-              onCreateRoom={handleCreateRoom}
-              onJoinRoom={handleJoinRoom}
-            />
-          </div>
+          <HomePage
+            onCreateRoom={() => setShowPrivateRoom(true)}
+            onJoinRoom={() => setShowPrivateRoom(true)}
+            onOpenSettings={() => setShowProfileSettings(true)}
+            onToggleTheme={() => setIsDarkMode(!isDarkMode)}
+            isDarkMode={isDarkMode}
+            activeRooms={rooms.length}
+            onlineUsers={rooms.reduce((acc, room) => acc + room.participants.filter(p => p.isOnline).length, 0)}
+          />
         )}
 
         {currentPage === 'chat' && currentRoom && (
-          <div className="h-[100dvh] flex flex-col">
+          <div className="fixed inset-0 md:pl-64 flex flex-col bg-gray-100 dark:bg-gray-900">
             {/* Chat Header */}
-            <div className="bg-white dark:bg-gray-800 p-4 shadow-md">
-              <div className="max-w-7xl mx-auto flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <User />
+            <div className="flex-none bg-white dark:bg-gray-800 shadow-md z-10">
+              <div className="max-w-7xl mx-auto px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setCurrentPage('home')}
+                      className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      <X size={24} />
+                    </button>
+                    <div>
+                      <h2 className="font-semibold">{currentRoom.name}</h2>
+                      <p className="text-sm text-gray-500">
+                        {currentRoom.connectedDevices.length} dispositivo(s) conectado(s)
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="font-semibold">{currentRoom.name}</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {currentRoom.participants.length} participantes
-                    </p>
+                  
+                  <div className="flex items-center gap-2">
+                    {currentRoom.connectedDevices.map(device => (
+                      <div
+                        key={device.deviceId}
+                        className="flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"
+                      >
+                        <span>{device.deviceName}</span>
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Messages */}
+            {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-4">
               <div className="max-w-3xl mx-auto space-y-4">
                 {currentRoom.messages.map((message) => (
@@ -238,9 +252,13 @@ function App() {
                       message.sender === currentUser.id ? 'flex-row-reverse' : 'flex-row'
                     }`}
                   >
-                    <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                       <img
-                        src={message.sender === currentUser.id ? currentUser.avatar : currentRoom.participants.find(p => p === message.sender)?.avatar || currentUser.avatar}
+                        src={
+                          message.sender === currentUser.id
+                            ? currentUser.avatar
+                            : currentRoom.participants.find(p => p.id === message.sender)?.avatar
+                        }
                         alt="Avatar"
                         className="w-full h-full object-cover"
                       />
@@ -270,9 +288,13 @@ function App() {
                           {message.fileName}
                         </a>
                       )}
-                      <span className="text-xs opacity-75 mt-1 block">
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </span>
+                      <div className="flex items-center gap-2 mt-1 opacity-75 text-xs">
+                        <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
+                        <span>•</span>
+                        <span>
+                          {currentRoom.connectedDevices.find(d => d.userId === message.sender)?.deviceName}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -280,50 +302,74 @@ function App() {
               </div>
             </div>
 
-            {/* Message Input */}
-            <div className="bg-white dark:bg-gray-800 p-4 border-t dark:border-gray-700">
-              <div className="max-w-3xl mx-auto flex items-end gap-2">
-                <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
-                    >
-                      <Smile />
-                    </button>
-                    <button
-                      onClick={() => setShowMediaUpload(true)}
-                      className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
-                    >
-                      <Paperclip />
-                    </button>
-                    <input
-                      type="text"
+            {/* Chat Input */}
+            <div className="flex-none bg-white dark:bg-gray-800 border-t dark:border-gray-700 p-4">
+              <div className="max-w-3xl mx-auto">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
+                    <textarea
                       value={messageText}
                       onChange={(e) => setMessageText(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
                       placeholder="Digite sua mensagem..."
-                      className="flex-1 bg-transparent outline-none"
+                      className="w-full bg-transparent resize-none focus:outline-none"
+                      rows={1}
                     />
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        <Smile size={20} />
+                      </button>
+                      <button
+                        onClick={() => setShowMediaUpload(true)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        <Paperclip size={20} />
+                      </button>
+                    </div>
                   </div>
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!messageText.trim()}
+                    className="bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                  >
+                    <Send size={20} />
+                  </button>
                 </div>
-                <button
-                  onClick={handleSendMessage}
-                  className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600"
-                >
-                  <Send />
-                </button>
               </div>
             </div>
           </div>
         )}
-      </main>
+      </div>
 
-      {/* Modals */}
-      {showEmojiPicker && (
-        <div className="absolute bottom-20 right-4">
-          <EmojiPicker onEmojiClick={onEmojiClick} />
-        </div>
+      {showProfileSettings && (
+        <ProfileSettings
+          user={currentUser}
+          onUpdate={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            setShowProfileSettings(false);
+          }}
+          onClose={() => setShowProfileSettings(false)}
+        />
+      )}
+
+      {showPrivateRoom && (
+        <PrivateRoom
+          onJoin={(room) => {
+            setRooms([...rooms, room]);
+            setCurrentRoom(room);
+            setCurrentPage('chat');
+            setShowPrivateRoom(false);
+          }}
+          onClose={() => setShowPrivateRoom(false)}
+        />
       )}
 
       {showMediaUpload && (
@@ -333,12 +379,10 @@ function App() {
         />
       )}
 
-      {showProfileSettings && (
-        <ProfileSettings
-          user={currentUser}
-          onUpdate={handleProfileUpdate}
-          onClose={() => setShowProfileSettings(false)}
-        />
+      {showEmojiPicker && (
+        <div className="absolute bottom-20 right-4">
+          <EmojiPicker onEmojiClick={handleEmojiClick} />
+        </div>
       )}
     </div>
   );
