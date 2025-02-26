@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Previne o scroll indesejado quando o teclado virtual está aberto */
+@media (max-width: 640px) {
+  .h-[100dvh] {
+    height: 100dvh;
+  }
+
+  .overflow-y-auto {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ajusta o tamanho do input quando o teclado está aberto */
+  .input-container {
+    position: sticky;
+    bottom: 0;
+    background-color: inherit;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Estilização do avatar padrão */
+.default-avatar {
+  background-color: #e2e8f0;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
 /* Estilos personalizados para melhor responsividade */
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar {

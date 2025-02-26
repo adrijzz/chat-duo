@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, Send, LogOut, User, Moon, Sun, Image, Paperclip, Smile, Settings, X, Users } from 'lucide-react';
+import { MessageCircle, Send, LogOut, User, Moon, Sun, Image, Paperclip, Smile, Settings, X, Users, FileText } from 'lucide-react';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { ProfileSettings } from './components/ProfileSettings';
 import { PrivateRoom } from './components/PrivateRoom';
@@ -45,9 +45,9 @@ function App() {
   const [messageText, setMessageText] = useState<string>('');
   const [currentUser, setCurrentUser] = useState<UserProfile>({
     id: 'user1',
-    name: 'Usuário 1',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80',
-    bio: 'Olá! Eu sou o Usuário 1.',
+    name: 'Usuário',
+    avatar: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMS40YzAgLjM1NCAwIC41MzEtLjA3NC42ODNhLjcyNi43MjYgMCAwIDEtLjI0My4yNDNjLS4xNTIuMDc0LS4zMjkuMDc0LS42ODMuMDc0SDQuOGMtLjM1NCAwLS41MzEgMC0uNjgzLS4wNzRhLjcyNi43MjYgMCAwIDEtLjI0My0uMjQzQzMuOCAyMS45MzEgMy44IDIxLjc1NCAzLjggMjEuNFYyMGgyLjRWNC42YzAtLjM1NCAwLS41MzEuMDc0LS42ODNhLjcyNi43MjYgMCAwIDEgLjI0My0uMjQzQzYuNjY5IDMuNiA2Ljg0NiAzLjYgNy4yIDMuNmg5LjZjLjM1NCAwIC41MzEgMCAuNjgzLjA3NGEuNzI2LjcyNiAwIDAgMSAuMjQzLjI0M2MuMDc0LjE1Mi4wNzQuMzI5LjA3NC42ODNWMjBoMi40djEuNHoiLz48L3N2Zz4=',
+    bio: 'Olá! Eu sou novo por aqui.',
     isTyping: false,
     isOnline: true
   });
@@ -210,7 +210,7 @@ function App() {
         )}
 
         {currentPage === 'chat' && currentRoom && (
-          <div className="h-full flex flex-col">
+          <div className="h-[100dvh] flex flex-col">
             {/* Chat Header */}
             <div className="bg-white dark:bg-gray-800 p-4 shadow-md">
               <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -234,10 +234,17 @@ function App() {
                 {currentRoom.messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${
-                      message.sender === currentUser.id ? 'justify-end' : 'justify-start'
+                    className={`flex items-start gap-2 ${
+                      message.sender === currentUser.id ? 'flex-row-reverse' : 'flex-row'
                     }`}
                   >
+                    <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+                      <img
+                        src={message.sender === currentUser.id ? currentUser.avatar : currentRoom.participants.find(p => p === message.sender)?.avatar || currentUser.avatar}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <div
                       className={`max-w-[70%] rounded-lg p-3 ${
                         message.sender === currentUser.id
@@ -259,7 +266,7 @@ function App() {
                           download={message.fileName}
                           className="flex items-center gap-2 text-blue-500 hover:underline"
                         >
-                          <Image size={20} />
+                          <FileText size={20} />
                           {message.fileName}
                         </a>
                       )}
