@@ -2,13 +2,14 @@
   "name": "chat-server",
   "version": "1.0.0",
   "main": "index.js",
+  "private": true,
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.x"
   },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "build": "echo 'No build step required'"
+    "build": "npm install"
   },
   "dependencies": {
     "cors": "^2.8.5",
