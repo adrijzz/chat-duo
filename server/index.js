@@ -3,6 +3,11 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
+// Log das variáveis de ambiente
+console.log('Variáveis de ambiente:');
+console.log('PORT:', process.env.PORT);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+
 // Configuração básica
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
@@ -15,7 +20,9 @@ app.use(express.json({ limit: '50mb' }));
 app.get('/', (req, res) => {
   res.json({ 
     status: 'online',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT,
+    env: process.env.NODE_ENV
   });
 });
 
@@ -65,8 +72,11 @@ app.post('/api/rooms', (req, res) => {
 });
 
 // Iniciar servidor
-const PORT = process.env.PORT || 5174;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`CORS configurado para: ${process.env.FRONTEND_URL || '*'}`);
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('=== Servidor iniciado ===');
+  console.log(`Porta: ${PORT}`);
+  console.log(`CORS: ${process.env.FRONTEND_URL || '*'}`);
+  console.log(`Ambiente: ${process.env.NODE_ENV}`);
+  console.log('======================');
 }); 
