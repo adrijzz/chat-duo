@@ -50,25 +50,52 @@ function App() {
   const [showMediaUpload, setShowMediaUpload] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [messageText, setMessageText] = useState('');
-  const [currentUser, setCurrentUser] = useState<UserProfile>({
-    id: 'user1',
-    name: 'Usuário',
-    avatar: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMS40YzAgLjM1NCAwIC41MzEtLjA3NC42ODNhLjcyNi43MjYgMCAwIDEtLjI0My4yNDNjLS4xNTIuMDc0LS4zMjkuMDc0LS42ODMuMDc0SDQuOGMtLjM1NCAwLS41MzEgMC0uNjgzLS4wNzRhLjcyNi43MjYgMCAwIDEtLjI0My0uMjQzQzMuOCAyMS45MzEgMy44IDIxLjc1NCAzLjggMjEuNFYyMGgyLjRWNC42YzAtLjM1NCAwLS41MzEuMDc0LS42ODNhLjcyNi43MjYgMCAwIDEgLjI0My0uMjQzQzYuNjY5IDMuNiA2Ljg0NiAzLjYgNy4yIDMuNmg5LjZjLjM1NCAwIC41MzEgMCAuNjgzLjA3NGEuNzI2LjcyNiAwIDAgMSAuMjQzLjI0M2MuMDc0LjE1Mi4wNzQuMzI5LjA3NC42ODNWMjBoMi40djEuNHoiLz48L3N2Zz4=',
-    bio: 'Olá! Eu sou novo por aqui.',
-    isTyping: false,
-    isOnline: true
+  const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    return savedUser ? JSON.parse(savedUser) : {
+      id: 'user1',
+      name: 'Usuário',
+      avatar: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMS40YzAgLjM1NCAwIC41MzEtLjA3NC42ODNhLjcyNi43MjYgMCAwIDEtLjI0My4yNDNjLS4xNTIuMDc0LS4zMjkuMDc0LS42ODMuMDc0SDQuOGMtLjM1NCAwLS41MzEgMC0uNjgzLS4wNzRhLjcyNi43MjYgMCAwIDEtLjI0My0uMjQzQzMuOCAyMS45MzEgMy44IDIxLjc1NCAzLjggMjEuNFYyMGgyLjRWNC42YzAtLjM1NCAwLS41MzEuMDc0LS42ODNhLjcyNi43MjYgMCAwIDEgLjI0My0uMjQzQzYuNjY5IDMuNiA2Ljg0NiAzLjYgNy4yIDMuNmg5LjZjLjM1NCAwIC41MzEgMCAuNjgzLjA3NGEuNzI2LjcyNiAwIDAgMSAuMjQzLjI0M2MuMDc0LjE1Mi4wNzQuMzI5LjA3NC42ODNWMjBoMi40djEuNHoiLz48L3N2Zz4=',
+      bio: 'Olá! Eu sou novo por aqui.',
+      isTyping: false,
+      isOnline: true
+    };
   });
 
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [rooms, setRooms] = useState<Room[]>(() => {
+    const savedRooms = localStorage.getItem('rooms');
+    return savedRooms ? JSON.parse(savedRooms) : [];
+  });
+
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
-  const [favoriteRooms, setFavoriteRooms] = useState<Room[]>([]);
-  const [recentRooms, setRecentRooms] = useState<Room[]>([]);
-  const [deviceId] = useState(() => `device_${Math.random().toString(36).slice(2)}`);
+  const [favoriteRooms, setFavoriteRooms] = useState<Room[]>(() => {
+    const savedFavorites = localStorage.getItem('favoriteRooms');
+    return savedFavorites ? JSON.parse(savedFavorites) : [];
+  });
+
+  const [recentRooms, setRecentRooms] = useState<Room[]>(() => {
+    const savedRecent = localStorage.getItem('recentRooms');
+    return savedRecent ? JSON.parse(savedRecent) : [];
+  });
+
+  const [deviceId] = useState(() => {
+    const savedDeviceId = localStorage.getItem('deviceId');
+    return savedDeviceId || `device_${Math.random().toString(36).slice(2)}`;
+  });
+
   const [deviceName] = useState(() => {
+    const savedDeviceName = localStorage.getItem('deviceName');
+    if (savedDeviceName) return savedDeviceName;
+    
     const userAgent = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(userAgent)) return 'iOS';
-    if (/Android/.test(userAgent)) return 'Android';
-    return 'Desktop';
+    let defaultName = 'Desktop';
+    if (/iPhone|iPad|iPod/.test(userAgent)) defaultName = 'iOS';
+    if (/Android/.test(userAgent)) defaultName = 'Android';
+    
+    // Adicionar um número aleatório para diferenciar dispositivos do mesmo tipo
+    defaultName = `${defaultName} ${Math.floor(Math.random() * 1000)}`;
+    localStorage.setItem('deviceName', defaultName);
+    return defaultName;
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -84,7 +111,7 @@ function App() {
   useEffect(() => {
     if (currentRoom) {
       setRecentRooms(prev => {
-        const filtered = prev.filter(r => r.id !== currentRoom.id);
+        const filtered = prev.filter((r: Room) => r.id !== currentRoom.id);
         return [currentRoom, ...filtered].slice(0, 5);
       });
     }
@@ -93,6 +120,214 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentRoom?.messages]);
+
+  useEffect(() => {
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('rooms', JSON.stringify(rooms));
+  }, [rooms]);
+
+  useEffect(() => {
+    localStorage.setItem('favoriteRooms', JSON.stringify(favoriteRooms));
+  }, [favoriteRooms]);
+
+  useEffect(() => {
+    localStorage.setItem('recentRooms', JSON.stringify(recentRooms));
+  }, [recentRooms]);
+
+  useEffect(() => {
+    localStorage.setItem('deviceId', deviceId);
+  }, [deviceId]);
+
+  useEffect(() => {
+    if (currentRoom) {
+      // Atualizar lista de dispositivos conectados
+      const updatedRoom = {
+        ...currentRoom,
+        connectedDevices: currentRoom.connectedDevices
+          .filter(d => 
+            // Remover dispositivos inativos (última atividade > 5 minutos)
+            Date.now() - d.lastActive < 5 * 60 * 1000 &&
+            // Manter outros dispositivos
+            d.deviceId !== deviceId
+          )
+      };
+
+      // Adicionar dispositivo atual
+      updatedRoom.connectedDevices.push({
+        userId: currentUser.id,
+        deviceId,
+        deviceName,
+        lastActive: Date.now()
+      });
+
+      setRooms(prev => prev.map(room => 
+        room.id === currentRoom.id ? updatedRoom : room
+      ));
+      setCurrentRoom(updatedRoom);
+
+      // Atualizar status de atividade a cada 30 segundos
+      const interval = setInterval(() => {
+        setCurrentRoom(prev => {
+          if (!prev) return null;
+          
+          const updated = {
+            ...prev,
+            connectedDevices: prev.connectedDevices.map(d =>
+              d.deviceId === deviceId
+                ? { ...d, lastActive: Date.now() }
+                : d
+            )
+          };
+
+          setRooms(rooms => rooms.map(room =>
+            room.id === updated.id ? updated : room
+          ));
+
+          return updated;
+        });
+      }, 30000);
+
+      return () => {
+        clearInterval(interval);
+        // Remover dispositivo ao sair da sala
+        if (currentRoom) {
+          const withoutDevice = {
+            ...currentRoom,
+            connectedDevices: currentRoom.connectedDevices.filter(
+              d => d.deviceId !== deviceId
+            )
+          };
+          setRooms(prev => prev.map(room =>
+            room.id === currentRoom.id ? withoutDevice : room
+          ));
+        }
+      };
+    }
+  }, [currentRoom?.id]);
+
+  // Função para sincronizar salas
+  const syncRooms = (updatedRooms: Room[]) => {
+    setRooms(updatedRooms);
+    localStorage.setItem('rooms', JSON.stringify(updatedRooms));
+    
+    // Enviar para o servidor
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5174'}/api/rooms`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        rooms: updatedRooms,
+        deviceInfo: {
+          userId: currentUser.id,
+          deviceId,
+          deviceName,
+          lastActive: Date.now()
+        }
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.rooms) {
+        setRooms(data.rooms);
+        if (currentRoom) {
+          const updatedRoom = data.rooms.find((r: Room) => r.id === currentRoom.id);
+          if (updatedRoom) {
+            setCurrentRoom(updatedRoom);
+          }
+        }
+      }
+    })
+    .catch(error => console.error('Erro ao sincronizar:', error));
+  };
+
+  // Polling para atualizar as salas
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5174'}/api/rooms`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.rooms) {
+              setRooms(prevRooms => {
+                // Mesclar salas do servidor com as locais
+                const mergedRooms = data.rooms.map((serverRoom: Room) => {
+                  const localRoom = prevRooms.find(r => r.id === serverRoom.id);
+                  if (localRoom) {
+                    return {
+                      ...serverRoom,
+                      messages: [...new Set([...serverRoom.messages, ...localRoom.messages])].sort((a, b) => a.timestamp - b.timestamp),
+                      connectedDevices: serverRoom.connectedDevices.filter(device => 
+                        Date.now() - device.lastActive < 5 * 60 * 1000 // Remove dispositivos inativos por mais de 5 minutos
+                      )
+                    };
+                  }
+                  return serverRoom;
+                });
+
+                // Atualizar sala atual se necessário
+                if (currentRoom) {
+                  const updatedRoom = mergedRooms.find(r => r.id === currentRoom.id);
+                  if (updatedRoom && JSON.stringify(updatedRoom) !== JSON.stringify(currentRoom)) {
+                    setCurrentRoom(updatedRoom);
+                  }
+                }
+
+                return mergedRooms;
+              });
+            }
+          })
+          .catch(error => console.error('Erro ao buscar salas:', error));
+      }
+    }, 1000);
+
+    // Atualizar status do dispositivo
+    const activityInterval = setInterval(() => {
+      if (currentRoom) {
+        const updatedRoom = {
+          ...currentRoom,
+          connectedDevices: currentRoom.connectedDevices
+            .filter(d => Date.now() - d.lastActive < 5 * 60 * 1000)
+            .map(d => d.deviceId === deviceId ? { ...d, lastActive: Date.now() } : d)
+        };
+        syncRooms(rooms.map(room => room.id === currentRoom.id ? updatedRoom : room));
+      }
+    }, 30000);
+
+    // Limpar intervalos ao desmontar
+    return () => {
+      clearInterval(interval);
+      clearInterval(activityInterval);
+    };
+  }, [currentRoom?.id]);
+
+  // Adicionar listener para quando a página ficar visível/invisível
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && currentRoom) {
+        syncRooms(rooms);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [currentRoom, rooms]);
+
+  // Remover dispositivo ao sair da sala
+  useEffect(() => {
+    return () => {
+      if (currentRoom) {
+        const updatedRoom = {
+          ...currentRoom,
+          connectedDevices: currentRoom.connectedDevices.filter(d => d.deviceId !== deviceId)
+        };
+        syncRooms(rooms.map(room => room.id === currentRoom.id ? updatedRoom : room));
+      }
+    };
+  }, [currentRoom?.id]);
 
   const handleSendMessage = () => {
     if (!messageText.trim() || !currentRoom) return;
@@ -106,11 +341,17 @@ function App() {
       read: false
     };
 
-    setCurrentRoom(prev => ({
-      ...prev!,
-      messages: [...prev!.messages, newMessage]
-    }));
+    const updatedRoom = {
+      ...currentRoom,
+      messages: [...currentRoom.messages, newMessage]
+    };
 
+    const updatedRooms = rooms.map(room => 
+      room.id === currentRoom.id ? updatedRoom : room
+    );
+
+    syncRooms(updatedRooms);
+    setCurrentRoom(updatedRoom);
     setMessageText('');
   };
 
@@ -134,10 +375,17 @@ function App() {
         read: false
       };
 
-      setCurrentRoom(prev => ({
-        ...prev!,
-        messages: [...prev!.messages, newMessage]
-      }));
+      const updatedRoom = {
+        ...currentRoom,
+        messages: [...currentRoom.messages, newMessage]
+      };
+
+      const updatedRooms = rooms.map(room => 
+        room.id === currentRoom.id ? updatedRoom : room
+      );
+
+      syncRooms(updatedRooms);
+      setCurrentRoom(updatedRoom);
     };
     reader.readAsDataURL(file);
   };
@@ -153,31 +401,80 @@ function App() {
     }
   };
 
+  const findOrCreateRoom = (roomId: string): Promise<Room | null> => {
+    // Primeiro, buscar no servidor
+    return fetch(`http://192.168.18.11:5174/api/rooms`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.rooms) {
+          // Procurar a sala nos dados do servidor
+          let room = data.rooms.find((r: Room) => r.id === roomId);
+          
+          if (!room) {
+            // Se não encontrar, criar nova sala
+            room = {
+              id: roomId,
+              name: `Sala ${roomId.slice(0, 6)}`,
+              participants: [],
+              messages: [],
+              isPrivate: false,
+              connectedDevices: []
+            };
+          }
+          
+          // Atualizar as salas locais
+          const updatedRooms = [...rooms];
+          const existingIndex = updatedRooms.findIndex(r => r.id === roomId);
+          
+          if (existingIndex >= 0) {
+            updatedRooms[existingIndex] = room;
+          } else {
+            updatedRooms.push(room);
+          }
+          
+          syncRooms(updatedRooms);
+          return room;
+        }
+        return null;
+      })
+      .catch(error => {
+        console.error('Erro ao buscar salas:', error);
+        return null;
+      });
+  };
+
+  const handleNavigation = async (page: string) => {
+    if (page === 'home') {
+      setCurrentPage('home');
+      setCurrentRoom(null);
+    } else if (page === 'rooms') {
+      setCurrentPage('rooms');
+    } else if (page === 'profile') {
+      setShowProfileSettings(true);
+    } else if (page === 'settings') {
+      // Implementar configurações
+    } else if (page === 'notifications') {
+      // Implementar notificações
+    } else if (page === 'logout') {
+      // Implementar logout
+    } else if (page.startsWith('room/')) {
+      const roomId = page.split('/')[1];
+      const room = await findOrCreateRoom(roomId);
+      if (room) {
+        setCurrentRoom(room);
+        setCurrentPage('chat');
+      }
+    }
+  };
+
+  const handleDeleteRecentRoom = (roomId: string) => {
+    setRecentRooms(prev => prev.filter(room => room.id !== roomId));
+  };
+
   return (
     <div className="h-screen bg-gray-100 dark:bg-gray-900">
       <MainMenu
-        onNavigate={(page) => {
-          if (page === 'home') {
-            setCurrentPage('home');
-          } else if (page === 'rooms') {
-            setCurrentPage('rooms');
-          } else if (page === 'profile') {
-            setShowProfileSettings(true);
-          } else if (page === 'settings') {
-            // Implementar configurações
-          } else if (page === 'notifications') {
-            // Implementar notificações
-          } else if (page === 'logout') {
-            // Implementar logout
-          } else if (page.startsWith('room/')) {
-            const roomId = page.split('/')[1];
-            const room = rooms.find(r => r.id === roomId);
-            if (room) {
-              setCurrentRoom(room);
-              setCurrentPage('chat');
-            }
-          }
-        }}
+        onNavigate={handleNavigation}
         onToggleTheme={() => setIsDarkMode(!isDarkMode)}
         isDarkMode={isDarkMode}
         currentUser={currentUser}
@@ -191,6 +488,7 @@ function App() {
           id: room.id,
           name: room.name
         }))}
+        onDeleteRecentRoom={handleDeleteRecentRoom}
       />
 
       <div className="md:pl-64">
@@ -207,106 +505,137 @@ function App() {
         )}
 
         {currentPage === 'chat' && currentRoom && (
-          <div className="fixed inset-0 md:pl-64 flex flex-col bg-gray-100 dark:bg-gray-900">
+          <div className="fixed inset-0 md:pl-64 flex flex-col">
             {/* Chat Header */}
-            <div className="flex-none bg-white dark:bg-gray-800 shadow-md z-10">
-              <div className="max-w-7xl mx-auto px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setCurrentPage('home')}
-                      className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                      <X size={24} />
-                    </button>
-                    <div>
-                      <h2 className="font-semibold">{currentRoom.name}</h2>
-                      <p className="text-sm text-gray-500">
-                        {currentRoom.connectedDevices.length} dispositivo(s) conectado(s)
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {currentRoom.connectedDevices.map(device => (
-                      <div
-                        key={device.deviceId}
-                        className="flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"
-                      >
-                        <span>{device.deviceName}</span>
-                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                      </div>
-                    ))}
+            <div className="flex-none bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+              <div className="h-16 px-4 flex items-center justify-between gap-4">
+                <button
+                  onClick={() => {
+                    setCurrentPage('home');
+                    setCurrentRoom(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+
+                <div className="flex-1 flex items-center gap-4">
+                  <h2 className="text-lg font-semibold">{currentRoom.name}</h2>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span>•</span>
+                    <span>{currentRoom.connectedDevices.length} online</span>
                   </div>
                 </div>
+
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(currentRoom.id);
+                    const button = document.getElementById('copyButton');
+                    if (button) {
+                      button.textContent = 'Copiado!';
+                      setTimeout(() => {
+                        button.textContent = currentRoom.id;
+                      }, 2000);
+                    }
+                  }}
+                  id="copyButton"
+                  className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  {currentRoom.id}
+                </button>
               </div>
             </div>
 
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="max-w-3xl mx-auto space-y-4">
-                {currentRoom.messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex items-start gap-2 ${
-                      message.sender === currentUser.id ? 'flex-row-reverse' : 'flex-row'
-                    }`}
-                  >
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-                      <img
-                        src={
-                          message.sender === currentUser.id
-                            ? currentUser.avatar
-                            : currentRoom.participants.find(p => p.id === message.sender)?.avatar
-                        }
-                        alt="Avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+            <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+              <div className="max-w-3xl mx-auto p-4 space-y-4">
+                {currentRoom.messages.map((message, index) => {
+                  const isCurrentUser = message.sender === currentUser.id;
+                  const showSender = index === 0 || 
+                    currentRoom.messages[index - 1].sender !== message.sender;
+                  
+                  return (
                     <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
-                        message.sender === currentUser.id
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700'
-                      }`}
+                      key={message.id}
+                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                     >
-                      {message.type === 'text' && <p>{message.text}</p>}
-                      {message.type === 'image' && (
-                        <img
-                          src={message.fileUrl}
-                          alt="Imagem"
-                          className="max-w-full rounded-lg"
-                        />
-                      )}
-                      {message.type === 'file' && (
-                        <a
-                          href={message.fileUrl}
-                          download={message.fileName}
-                          className="flex items-center gap-2 text-blue-500 hover:underline"
-                        >
-                          <FileText size={20} />
-                          {message.fileName}
-                        </a>
-                      )}
-                      <div className="flex items-center gap-2 mt-1 opacity-75 text-xs">
-                        <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
-                        <span>•</span>
-                        <span>
-                          {currentRoom.connectedDevices.find(d => d.userId === message.sender)?.deviceName}
-                        </span>
+                      <div className={`flex max-w-[80%] items-end gap-2 ${
+                        isCurrentUser ? 'flex-row-reverse' : 'flex-row'
+                      }`}>
+                        {showSender && (
+                          <img
+                            src={isCurrentUser ? currentUser.avatar : 'default-avatar.png'}
+                            alt="Avatar"
+                            className="w-6 h-6 rounded-full"
+                          />
+                        )}
+                        {!showSender && <div className="w-6" />}
+                        
+                        <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+                          {showSender && !isCurrentUser && (
+                            <span className="text-xs text-gray-500 mb-1 ml-1">
+                              {currentRoom.participants.find(p => p.id === message.sender)?.name || 'Usuário'}
+                            </span>
+                          )}
+                          
+                          <div className={`rounded-2xl px-4 py-2 ${
+                            isCurrentUser 
+                              ? 'bg-blue-500 text-white' 
+                              : 'bg-white dark:bg-gray-800'
+                          }`}>
+                            {message.type === 'text' && (
+                              <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                            )}
+                            {message.type === 'image' && (
+                              <img
+                                src={message.fileUrl}
+                                alt="Imagem"
+                                className="rounded-lg max-w-full"
+                              />
+                            )}
+                            {message.type === 'file' && (
+                              <div className="flex items-center gap-2">
+                                <FileText size={16} />
+                                <span className="text-sm">{message.fileName}</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <span className="text-xs text-gray-400 mt-1 mx-1">
+                            {new Date(message.timestamp).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
             </div>
 
             {/* Chat Input */}
-            <div className="flex-none bg-white dark:bg-gray-800 border-t dark:border-gray-700 p-4">
-              <div className="max-w-3xl mx-auto">
+            <div className="flex-none bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+              <div className="max-w-3xl mx-auto p-4">
                 <div className="flex items-end gap-2">
-                  <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setShowMediaUpload(true)}
+                      className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                    >
+                      <Paperclip size={20} />
+                    </button>
+                    <button
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                    >
+                      <Smile size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="flex-1">
                     <textarea
                       value={messageText}
                       onChange={(e) => setMessageText(e.target.value)}
@@ -317,28 +646,15 @@ function App() {
                         }
                       }}
                       placeholder="Digite sua mensagem..."
-                      className="w-full bg-transparent resize-none focus:outline-none"
+                      className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-2xl resize-none text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       rows={1}
                     />
-                    <div className="flex items-center gap-2 mt-2">
-                      <button
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        <Smile size={20} />
-                      </button>
-                      <button
-                        onClick={() => setShowMediaUpload(true)}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        <Paperclip size={20} />
-                      </button>
-                    </div>
                   </div>
+                  
                   <button
                     onClick={handleSendMessage}
                     disabled={!messageText.trim()}
-                    className="bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                    className="p-2 text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-blue-500 rounded-full transition-colors"
                   >
                     <Send size={20} />
                   </button>
@@ -363,12 +679,28 @@ function App() {
       {showPrivateRoom && (
         <PrivateRoom
           onJoin={(room) => {
-            setRooms([...rooms, room]);
+            // Verificar se a sala já existe
+            const existingRoom = rooms.find(r => r.id === room.id);
+            if (!existingRoom) {
+              // Se não existir, adicionar aos rooms
+              syncRooms([...rooms, room]);
+            }
+            
+            // Atualizar sala atual
             setCurrentRoom(room);
             setCurrentPage('chat');
             setShowPrivateRoom(false);
+
+            // Adicionar às salas recentes
+            const updatedRecentRooms = [
+              room,
+              ...recentRooms.filter(r => r.id !== room.id)
+            ].slice(0, 5);
+            setRecentRooms(updatedRecentRooms);
+            localStorage.setItem('recentRooms', JSON.stringify(updatedRecentRooms));
           }}
           onClose={() => setShowPrivateRoom(false)}
+          existingRooms={rooms}
         />
       )}
 
@@ -377,12 +709,6 @@ function App() {
           onFileSelect={handleFileSelect}
           onClose={() => setShowMediaUpload(false)}
         />
-      )}
-
-      {showEmojiPicker && (
-        <div className="absolute bottom-20 right-4">
-          <EmojiPicker onEmojiClick={handleEmojiClick} />
-        </div>
       )}
     </div>
   );

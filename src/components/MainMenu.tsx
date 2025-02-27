@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MessageCircle,
   Users,
@@ -12,7 +12,9 @@ import {
   Star,
   Clock,
   Menu as MenuIcon,
-  X
+  X,
+  Trash2,
+  User
 } from 'lucide-react';
 
 interface MainMenuProps {
@@ -33,6 +35,7 @@ interface MainMenuProps {
     id: string;
     name: string;
   }>;
+  onDeleteRecentRoom?: (roomId: string) => void;
 }
 
 export function MainMenu({
@@ -41,167 +44,233 @@ export function MainMenu({
   isDarkMode,
   currentUser,
   recentRooms,
-  favoriteRooms
+  favoriteRooms,
+  onDeleteRecentRoom
 }: MainMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Fechar o menu quando mudar para desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Prevenir scroll quando menu mobile estiver aberto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  const handleTouchStart = (roomId: string) => {
+    const timer = setTimeout(() => {
+      setSelectedRoomId(roomId);
+    }, 500); // 500ms para considerar como long press
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
 
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Botão do Menu Mobile */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-white dark:bg-gray-800 shadow-lg md:hidden"
+        className="fixed top-4 left-4 p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg z-50 md:hidden"
+        aria-label="Menu"
       >
-        {isOpen ? <X size={24} /> : <MenuIcon size={24} />}
+        {isOpen ? <X size={20} /> : <MenuIcon size={20} />}
       </button>
 
-      {/* Overlay for mobile */}
+      {/* Overlay para Mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-xl z-40 transform transition-transform duration-300 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
-      >
-        {/* User Profile Section */}
-        <div className="p-4 border-b dark:border-gray-700">
-          <div className="flex items-center gap-3 mb-4">
+      {/* Menu Principal */}
+      <div className={`
+        fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 
+        dark:border-gray-700 flex flex-col z-50 transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        {/* Header do Menu */}
+        <div className="flex-none p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
             <img
               src={currentUser.avatar}
-              alt="Profile"
-              className="w-10 h-10 rounded-full"
+              alt="Avatar"
+              className="w-10 h-10 rounded-full ring-2 ring-blue-500/20"
             />
-            <div>
-              <h3 className="font-semibold">{currentUser.name}</h3>
-              <button
-                onClick={() => onNavigate('profile')}
-                className="text-sm text-blue-500 hover:text-blue-600"
-              >
-                Editar Perfil
-              </button>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-semibold truncate">{currentUser.name}</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Online</p>
             </div>
+            <button
+              onClick={onToggleTheme}
+              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            >
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          {/* Barra de Pesquisa */}
+          <div className="mt-4 relative">
             <input
               type="text"
-              placeholder="Buscar salas..."
+              placeholder="Buscar..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 pl-10 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="p-4 space-y-6">
-          {/* Main Actions */}
-          <div className="space-y-2">
+        {/* Menu Principal - Conteúdo */}
+        <div className="flex-1 overflow-y-auto p-3">
+          {/* Ações Principais */}
+          <div className="space-y-1 mb-6">
             <button
-              onClick={() => onNavigate('home')}
-              className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => {
+                onNavigate('home');
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
-              <MessageCircle size={20} />
-              <span>Chat Principal</span>
+              <MessageCircle size={18} />
+              <span>Chat</span>
             </button>
             <button
-              onClick={() => onNavigate('rooms')}
-              className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => {
+                onNavigate('profile');
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
-              <Hash size={20} />
-              <span>Todas as Salas</span>
+              <User size={18} />
+              <span>Perfil</span>
             </button>
           </div>
 
-          {/* Favorite Rooms */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-500 mb-2 flex items-center gap-2">
-              <Star size={16} className="text-yellow-500" />
-              Salas Favoritas
-            </h4>
-            <div className="space-y-1">
-              {favoriteRooms.map(room => (
-                <button
-                  key={room.id}
-                  onClick={() => onNavigate(`room/${room.id}`)}
-                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-                >
-                  <span className="truncate">{room.name}</span>
-                </button>
-              ))}
+          {/* Salas Favoritas */}
+          {favoriteRooms.length > 0 && (
+            <div className="mb-6">
+              <h3 className="px-3 mb-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Favoritos
+              </h3>
+              <div className="space-y-1">
+                {favoriteRooms.map(room => (
+                  <button
+                    key={room.id}
+                    onClick={() => {
+                      onNavigate(`room/${room.id}`);
+                      setIsOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <Star size={18} className="text-yellow-500" />
+                    <span className="flex-1 truncate">{room.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Recent Rooms */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-500 mb-2 flex items-center gap-2">
-              <Clock size={16} />
-              Conversas Recentes
-            </h4>
-            <div className="space-y-1">
-              {recentRooms.map(room => (
-                <button
-                  key={room.id}
-                  onClick={() => onNavigate(`room/${room.id}`)}
-                  className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">
-                      {room.name}
-                    </div>
-                    {room.lastMessage && (
-                      <div className="text-xs text-gray-500 truncate">
-                        {room.lastMessage}
+          {/* Salas Recentes */}
+          {recentRooms.length > 0 && (
+            <div className="mb-6">
+              <h3 className="px-3 mb-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Recentes
+              </h3>
+              <div className="space-y-1">
+                {recentRooms.map(room => (
+                  <div
+                    key={room.id}
+                    className="group flex items-center gap-2 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <button
+                      onClick={() => {
+                        onNavigate(`room/${room.id}`);
+                        setIsOpen(false);
+                      }}
+                      className="flex-1 flex items-center gap-3 py-2 px-2 text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      <Clock size={18} className="flex-none text-gray-400" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{room.name}</div>
+                        {room.lastMessage && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {room.lastMessage}
+                          </p>
+                        )}
                       </div>
-                    )}
+                      {room.unreadCount && room.unreadCount > 0 && (
+                        <span className="flex-none px-2 py-0.5 text-xs font-medium text-white bg-blue-500 rounded-full">
+                          {room.unreadCount}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (onDeleteRecentRoom) {
+                          onDeleteRecentRoom(room.id);
+                        }
+                      }}
+                      className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={16} />
+                    </button>
                   </div>
-                  {room.unreadCount && room.unreadCount > 0 && (
-                    <span className="ml-2 px-2 py-1 text-xs bg-blue-500 text-white rounded-full">
-                      {room.unreadCount}
-                    </span>
-                  )}
-                </button>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </nav>
+          )}
+        </div>
 
-        {/* Bottom Actions */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-800">
-          <div className="flex items-center justify-between">
+        {/* Footer do Menu */}
+        <div className="flex-none p-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="space-y-1">
             <button
-              onClick={() => onNavigate('notifications')}
-              className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 relative"
+              onClick={() => {
+                onNavigate('settings');
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
-              <Bell size={20} />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
+              <Settings size={18} />
+              <span>Configurações</span>
             </button>
             <button
-              onClick={() => onNavigate('settings')}
-              className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              onClick={() => {
+                onNavigate('logout');
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
             >
-              <Settings size={20} />
-            </button>
-            <button
-              onClick={onToggleTheme}
-              className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <button
-              onClick={() => onNavigate('logout')}
-              className="p-2 text-red-500 hover:text-red-600"
-            >
-              <LogOut size={20} />
+              <LogOut size={18} />
+              <span>Sair</span>
             </button>
           </div>
         </div>
