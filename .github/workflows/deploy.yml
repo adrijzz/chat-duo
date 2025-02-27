@@ -27,6 +27,16 @@ jobs:
     - name: Build Frontend
       run: npm run build
 
+    - name: Install Railway CLI
+      run: npm i -g @railway/cli
+
+    - name: Deploy to Railway
+      run: |
+        cd server
+        railway up
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
     - name: Test Build
       run: |
         npm run test --if-present
