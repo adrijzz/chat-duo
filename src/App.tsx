@@ -214,7 +214,7 @@ function App() {
     localStorage.setItem('rooms', JSON.stringify(updatedRooms));
     
     // Enviar para o servidor
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5174'}/api/rooms`, {
+    fetch(`${import.meta.env.VITE_API_URL || 'https://chat-duo-production.up.railway.app'}/api/rooms`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       if (!document.hidden) {
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5174'}/api/rooms`)
+        fetch(`${import.meta.env.VITE_API_URL || 'https://chat-duo-production.up.railway.app'}/api/rooms`)
           .then(response => response.json())
           .then(data => {
             if (data.rooms) {
@@ -403,7 +403,7 @@ function App() {
 
   const findOrCreateRoom = (roomId: string): Promise<Room | null> => {
     // Primeiro, buscar no servidor
-    return fetch(`http://192.168.18.11:5174/api/rooms`)
+    return fetch(`https://chat-duo-production.up.railway.app/api/rooms`)
       .then(response => response.json())
       .then(data => {
         if (data.rooms) {
