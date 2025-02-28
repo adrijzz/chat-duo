@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npx tsc && npx vite build",
-    "preview": "vite preview",
-    "install": "npm install"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.2.0",
