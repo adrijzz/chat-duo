@@ -257,11 +257,19 @@ function App() {
                 const mergedRooms = data.rooms.map((serverRoom: Room) => {
                   const localRoom = prevRooms.find(r => r.id === serverRoom.id);
                   if (localRoom) {
+                    // Usar Set para garantir mensagens únicas baseado no ID
+                    const uniqueMessages = Array.from(
+                      new Map(
+                        [...serverRoom.messages, ...localRoom.messages]
+                          .map(msg => [msg.id, msg])
+                      ).values()
+                    ).sort((a, b) => a.timestamp - b.timestamp);
+
                     return {
                       ...serverRoom,
-                      messages: [...new Set([...serverRoom.messages, ...localRoom.messages])].sort((a, b) => a.timestamp - b.timestamp),
+                      messages: uniqueMessages,
                       connectedDevices: serverRoom.connectedDevices.filter(device => 
-                        Date.now() - device.lastActive < 5 * 60 * 1000 // Remove dispositivos inativos por mais de 5 minutos
+                        Date.now() - device.lastActive < 5 * 60 * 1000
                       )
                     };
                   }
@@ -271,7 +279,7 @@ function App() {
                 // Atualizar sala atual se necessário
                 if (currentRoom) {
                   const updatedRoom = mergedRooms.find(r => r.id === currentRoom.id);
-                  if (updatedRoom && JSON.stringify(updatedRoom) !== JSON.stringify(currentRoom)) {
+                  if (updatedRoom && JSON.stringify(updatedRoom.messages) !== JSON.stringify(currentRoom.messages)) {
                     setCurrentRoom(updatedRoom);
                   }
                 }
@@ -282,7 +290,7 @@ function App() {
           })
           .catch(error => console.error('Erro ao buscar salas:', error));
       }
-    }, 1000);
+    }, 3000); // Aumentado para 3 segundos
 
     // Atualizar status do dispositivo
     const activityInterval = setInterval(() => {
@@ -341,18 +349,20 @@ function App() {
       read: false
     };
 
+    // Atualizar localmente primeiro
     const updatedRoom = {
       ...currentRoom,
       messages: [...currentRoom.messages, newMessage]
     };
 
+    setCurrentRoom(updatedRoom);
+    setMessageText('');
+
+    // Sincronizar com o servidor depois
     const updatedRooms = rooms.map(room => 
       room.id === currentRoom.id ? updatedRoom : room
     );
-
     syncRooms(updatedRooms);
-    setCurrentRoom(updatedRoom);
-    setMessageText('');
   };
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
