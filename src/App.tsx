@@ -247,69 +247,34 @@ function App() {
   // Polling para atualizar as salas
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!document.hidden) {
+      if (!document.hidden && currentRoom) {
         fetch(`${import.meta.env.VITE_API_URL || 'https://chat-duo-production.up.railway.app'}/api/rooms`)
           .then(response => response.json())
           .then(data => {
             if (data.rooms) {
-              setRooms(prevRooms => {
-                // Mesclar salas do servidor com as locais
-                const mergedRooms = data.rooms.map((serverRoom: Room) => {
-                  const localRoom = prevRooms.find(r => r.id === serverRoom.id);
-                  if (localRoom) {
-                    // Usar Set para garantir mensagens únicas baseado no ID
-                    const uniqueMessages = Array.from(
-                      new Map(
-                        [...serverRoom.messages, ...localRoom.messages]
-                          .map(msg => [msg.id, msg])
-                      ).values()
-                    ).sort((a, b) => a.timestamp - b.timestamp);
-
-                    return {
-                      ...serverRoom,
-                      messages: uniqueMessages,
-                      connectedDevices: serverRoom.connectedDevices.filter(device => 
-                        Date.now() - device.lastActive < 5 * 60 * 1000
-                      )
-                    };
-                  }
-                  return serverRoom;
+              const serverRoom = data.rooms.find((r: Room) => r.id === currentRoom.id);
+              if (serverRoom) {
+                // Usar apenas as mensagens do servidor
+                setCurrentRoom({
+                  ...serverRoom,
+                  connectedDevices: serverRoom.connectedDevices.filter(device => 
+                    Date.now() - device.lastActive < 5 * 60 * 1000
+                  )
                 });
 
-                // Atualizar sala atual se necessário
-                if (currentRoom) {
-                  const updatedRoom = mergedRooms.find(r => r.id === currentRoom.id);
-                  if (updatedRoom && JSON.stringify(updatedRoom.messages) !== JSON.stringify(currentRoom.messages)) {
-                    setCurrentRoom(updatedRoom);
-                  }
-                }
-
-                return mergedRooms;
-              });
+                setRooms(prevRooms => 
+                  prevRooms.map(room => 
+                    room.id === currentRoom.id ? serverRoom : room
+                  )
+                );
+              }
             }
           })
           .catch(error => console.error('Erro ao buscar salas:', error));
       }
-    }, 3000); // Aumentado para 3 segundos
+    }, 1000);
 
-    // Atualizar status do dispositivo
-    const activityInterval = setInterval(() => {
-      if (currentRoom) {
-        const updatedRoom = {
-          ...currentRoom,
-          connectedDevices: currentRoom.connectedDevices
-            .filter(d => Date.now() - d.lastActive < 5 * 60 * 1000)
-            .map(d => d.deviceId === deviceId ? { ...d, lastActive: Date.now() } : d)
-        };
-        syncRooms(rooms.map(room => room.id === currentRoom.id ? updatedRoom : room));
-      }
-    }, 30000);
-
-    // Limpar intervalos ao desmontar
-    return () => {
-      clearInterval(interval);
-      clearInterval(activityInterval);
-    };
+    return () => clearInterval(interval);
   }, [currentRoom?.id]);
 
   // Adicionar listener para quando a página ficar visível/invisível
@@ -341,7 +306,7 @@ function App() {
     if (!messageText.trim() || !currentRoom) return;
 
     const newMessage: Message = {
-      id: Math.random().toString(36).slice(2),
+      id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
       text: messageText,
       sender: currentUser.id,
       timestamp: Date.now(),
@@ -358,11 +323,25 @@ function App() {
     setCurrentRoom(updatedRoom);
     setMessageText('');
 
-    // Sincronizar com o servidor depois
-    const updatedRooms = rooms.map(room => 
-      room.id === currentRoom.id ? updatedRoom : room
-    );
-    syncRooms(updatedRooms);
+    // Enviar para o servidor
+    fetch(`${import.meta.env.VITE_API_URL || 'https://chat-duo-production.up.railway.app'}/api/rooms`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        rooms: rooms.map(room => 
+          room.id === currentRoom.id ? updatedRoom : room
+        ),
+        deviceInfo: {
+          userId: currentUser.id,
+          deviceId,
+          deviceName,
+          lastActive: Date.now()
+        }
+      })
+    })
+    .catch(error => console.error('Erro ao sincronizar:', error));
   };
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
