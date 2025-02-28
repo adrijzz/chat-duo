@@ -4,16 +4,38 @@ const cors = require('cors');
 const app = express();
 
 // Log das variáveis de ambiente
-console.log('Variáveis de ambiente:');
+console.log('=== Variáveis de ambiente ===');
 console.log('PORT:', process.env.PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('==========================');
 
-// Configuração básica
-app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
-}));
+// Configuração CORS
+const corsOptions = {
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://chat-duo.vercel.app'
+    ].filter(Boolean);
+    
+    // Permitir requisições sem origin (como mobile apps ou Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.log('Origem bloqueada pelo CORS:', origin);
+      callback(new Error('Não permitido pelo CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 
 // Rota de status
@@ -73,10 +95,11 @@ app.post('/api/rooms', (req, res) => {
 
 // Iniciar servidor
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => {
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
   console.log('=== Servidor iniciado ===');
-  console.log(`Porta: ${PORT}`);
-  console.log(`CORS: ${process.env.FRONTEND_URL || '*'}`);
+  console.log(`Servidor rodando em: http://${HOST}:${PORT}`);
   console.log(`Ambiente: ${process.env.NODE_ENV}`);
   console.log('======================');
 }); 
