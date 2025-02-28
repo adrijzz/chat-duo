@@ -2,11 +2,13 @@
   "name": "chat-server",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "commonjs",
   "private": true,
+  "engines": {
+    "node": "18.x",
+    "npm": "10.x"
+  },
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "cors": "2.8.5",
