@@ -2,13 +2,13 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copiar arquivos de dependências
+# Copiar arquivos de dependências primeiro
 COPY package*.json ./
 
 # Instalar dependências
-RUN npm ci
+RUN npm install --omit=dev
 
-# Copiar código fonte
+# Copiar resto do código
 COPY . .
 
 # Expor porta
